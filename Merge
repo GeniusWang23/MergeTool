@@ -1,0 +1,55 @@
+import os
+from PyPDF2 import PdfReader, PdfWriter
+from tkinter import Tk, filedialog, Label, Button, messagebox
+
+def merge_pdfs_with_report_first(folder, output_folder, base_name, report_file, non_report_file):
+    writer = PdfWriter()
+
+    # 读取包含“报告”的PDF文件
+    with open(os.path.join(folder, report_file), 'rb') as f:
+        reader = PdfReader(f)
+        for page in reader.pages:
+            writer.add_page(page)
+
+    # 读取不包含“报告”的PDF文件
+    with open(os.path.join(folder, non_report_file), 'rb') as f:
+        reader = PdfReader(f)
+        for page in reader.pages:
+            writer.add_page(page)
+
+    # 输出合并后的PDF文件
+    output_file = os.path.join(output_folder, report_file)
+    with open(output_file, 'wb') as out:
+        writer.write(out)
+
+def merge_similar_pdfs(folder):
+    # 创建输出文件夹
+    output_folder = os.path.join(os.path.dirname(folder), "output")
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    pdf_files = {os.path.splitext(f)[0]: f for f in os.listdir(folder) if f.endswith('.pdf')}
+    report_files = {name: pdf for name, pdf in pdf_files.items() if '报告' in pdf}
+
+    for name, report_pdf in report_files.items():
+        non_report_pdf = pdf_files.get(name.replace('报告', ''))
+        if non_report_pdf:
+            merge_pdfs_with_report_first(folder, output_folder, name, report_pdf, non_report_pdf)
+
+    messagebox.showinfo("完成", f"所有PDF文件已合并并保存在 {output_folder}")
+
+def select_folder():
+    folder = filedialog.askdirectory(title="选择源文件夹")
+    if folder:
+        merge_similar_pdfs(folder)
+
+# 创建主窗口
+root = Tk()
+root.title("PDF Merge Tool")
+
+# 创建标签和按钮
+Label(root, text="点击按钮选择源文件夹并开始合并PDF文件。").pack()
+Button(root, text="选择文件夹并合并PDF", command=select_folder).pack()
+
+# 运行主循环
+root.mainloop()
